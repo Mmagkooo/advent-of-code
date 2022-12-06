@@ -1,0 +1,4 @@
+BA
+CD
+BC
+DA

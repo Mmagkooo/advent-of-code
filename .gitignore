@@ -1,2 +1,4 @@
-.exe
-.pyc
+*.exe
+*.log
+.vscode/
+__pycache__/
