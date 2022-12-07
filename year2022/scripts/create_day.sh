@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-DAY="day$1"
+DAY="$1"
 
-mkdir "$DAY-"{part1,part2}
-mkdir "input/$DAY"
-touch "input/$DAY/"{sample.txt,input.txt}
+mkdir -p "src/bin/day$DAY-"{part1,part2}
+code -r "src/bin/day$DAY-"{part1,part2}"/main.rs"
+
+mkdir "input/day$DAY"
+code -r "input/day$DAY/"{sample.txt,input.txt}
