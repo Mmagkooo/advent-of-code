@@ -11,9 +11,9 @@ echo "Actual:   $ACTUAL"
 EXPECTED=$(cat "data/day$DAY/sample-output-part$PART.txt")
 echo "Expected: $EXPECTED"
 
-if [ $ACTUAL == $EXPECTED ]; then
+if [ "$ACTUAL" == "$EXPECTED" ]; then
     printf "\u2714 Correct\n"
 else
-    printf "\u274c Failed"
+    printf "\u274c Failed\n"
     exit 1
 fi
