@@ -1,6 +1,9 @@
-use std::io::{self, BufRead};
+use std::{
+    cmp::Ordering,
+    io::{self, BufRead},
+};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Element {
     number: Option<i32>,
     vector: Vec<Element>,
@@ -59,18 +62,32 @@ fn parse_element(tokens: &Vec<char>, index: usize) -> (Element, usize) {
     return (ret_element, new_index);
 }
 
-fn compare(left: &Vec<Element>, right: &Vec<Element>) -> i32 {
+fn num_to_ordering(num: i32) -> Ordering {
+    if num < 0 {
+        Ordering::Less
+    } else if num > 0 {
+        Ordering::Greater
+    } else {
+        Ordering::Equal
+    }
+}
+
+fn index_of<T: std::cmp::PartialEq>(v: &Vec<T>, el: T) -> usize {
+    v.iter().position(|r| r == &el).expect("Element not found")
+}
+
+fn compare(left: &Vec<Element>, right: &Vec<Element>) -> Ordering {
     for (left_el, right_el) in left.iter().zip(right) {
         let left_el_is_int = left_el.number.is_some();
         let right_el_is_int = right_el.number.is_some();
 
         if left_el_is_int && right_el_is_int {
             if left_el.number != right_el.number {
-                return left_el.number.unwrap() - right_el.number.unwrap();
+                return num_to_ordering(left_el.number.unwrap() - right_el.number.unwrap());
             }
         } else if !left_el_is_int && !right_el_is_int {
             let list_comparison = compare(&left_el.vector, &right_el.vector);
-            if list_comparison != 0 {
+            if list_comparison != Ordering::Equal {
                 return list_comparison;
             }
         } else {
@@ -79,31 +96,34 @@ fn compare(left: &Vec<Element>, right: &Vec<Element>) -> i32 {
             } else {
                 compare(&left_el.vector, &vec![right_el.clone()])
             };
-            if list_comparison != 0 {
+            if list_comparison != Ordering::Equal {
                 return list_comparison;
             }
         }
     }
 
-    return left.len() as i32 - right.len() as i32;
+    return num_to_ordering(left.len() as i32 - right.len() as i32);
 }
 
 fn main() {
     let lines = io::stdin().lock().lines();
     let lines: Vec<String> = lines
         .map(|line| line.expect("Could not read line"))
+        .filter(|line| !line.is_empty())
         .collect();
 
-    let mut sol = 0;
-    for line_i in (0..lines.len()).step_by(3) {
-        let left = parse_line(&lines[line_i]);
-        let right = parse_line(&lines[line_i + 1]);
+    let mut parsed_lines: Vec<Vec<Element>> =
+        lines.iter().map(|line| parse_line(line.as_str())).collect();
 
-        if compare(&left, &right) < 0 {
-            let i = line_i / 3 + 1;
-            sol += i;
-        }
-    }
+    let first_packet = parse_line("[[2]]");
+    parsed_lines.push(first_packet.clone());
+    let second_packet = parse_line("[[6]]");
+    parsed_lines.push(second_packet.clone());
 
-    println!("{sol}");
+    parsed_lines.sort_by(compare);
+
+    let first_packet_index = index_of(&parsed_lines, first_packet) + 1;
+    let second_packet_index = index_of(&parsed_lines, second_packet) + 1;
+
+    println!("{}", first_packet_index * second_packet_index);
 }
