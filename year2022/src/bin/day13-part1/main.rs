@@ -1,3 +1,9 @@
+/**
+ * Can be rewritten with the following in mind:
+ * - parsing can be done with the JSON crate
+ * - instead of using struct Element, perhaps enum Element could be used
+ */
+
 use std::io::{self, BufRead};
 
 #[derive(Clone, Debug)]
