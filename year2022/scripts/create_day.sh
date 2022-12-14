@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-if [ -z "$1" ]; then
+if [ ! -z "$1" ]; then
     DAY="$1"
 else
     # defaults to today
