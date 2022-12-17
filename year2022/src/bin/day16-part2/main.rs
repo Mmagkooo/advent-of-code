@@ -1,8 +1,10 @@
+use itertools::{self, Itertools};
 use regex::Regex;
 use std::{
     cmp::max,
     collections::HashMap,
     io::{stdin, BufRead},
+    // i32::MAX,
 };
 
 #[derive(Debug)]
@@ -19,65 +21,111 @@ fn store(storage: &mut u64, value: u8) {
     *storage |= 1 << value
 }
 
-type Configuration = (u8, i32, u64);
+type Configuration = (u8, u8, i32, u64);
 
 fn find_max_pressure(
     valves: &HashMap<u8, Valve>,
-    valve_id: u8,
+    valve1_id: u8,
+    valve2_id: u8,
     time_left: i32,
     open: u64,
     accumulated_rate: i32,
     memo: &mut HashMap<Configuration, i32>,
 ) -> i32 {
+    // println!("name={name}, time_left={time_left}, acc_rate={accumulated_rate}");
     if time_left <= 0 {
         return 0;
     }
 
-    // this should check if number of opened valves equals the number of valves worth opening (those with rate > 0)
-    // if open.count_ones() == 15 {
+    // why 15? because that's the number of valves with flow rate > 0
+    // an even better optimization would be to merge nodes
+    // if open.count_ones() > 15 {
     //     return time_left * accumulated_rate;
     // }
 
-    let configuration: Configuration = (valve_id, time_left, open);
+    let configuration: Configuration = (valve1_id, valve2_id, time_left, open);
     if memo.contains_key(&configuration) {
         return memo[&configuration];
     }
 
-    let valve = &valves[&valve_id];
+    let valve1 = &valves[&valve1_id];
+    let valve2 = &valves[&valve2_id];
+
     let mut max_pressure = 0;
 
-    // 1. option: if possible, open the valve
-    if !contains(open, valve_id) && valve.rate > 0 && time_left >= 1 {
+    // 1. option: both try to open
+    if (!contains(open, valve1_id) && valve1.rate > 0)
+        && (!contains(open, valve2_id) && valve2.rate > 0)
+        && (valve1_id != valve2_id)
+        && time_left >= 1
+    {
         let mut open = open;
-        store(&mut open, valve_id);
-        max_pressure = max(
-            max_pressure,
-            accumulated_rate
-                + find_max_pressure(
-                    valves,
-                    valve_id,
-                    time_left - 1,
-                    open,
-                    accumulated_rate + valve.rate,
-                    memo,
-                ),
-        );
+        store(&mut open, valve1_id);
+        store(&mut open, valve2_id);
+        let candidate = find_max_pressure(
+            valves,
+            valve1_id,
+            valve2_id,
+            time_left - 1,
+            open,
+            accumulated_rate + valve1.rate + valve2.rate,
+            memo,
+        ) + accumulated_rate;
+        max_pressure = max(max_pressure, candidate);
     }
 
-    // 2. case: move to child valve
-    for child_id in valve.children.iter() {
-        max_pressure = max(
-            max_pressure,
-            accumulated_rate
-                + find_max_pressure(
-                    valves,
-                    *child_id,
-                    time_left - 1,
-                    open,
-                    accumulated_rate,
-                    memo,
-                ),
-        );
+    // 2. option: agent1 opens, agent2 moves
+    if !contains(open, valve1_id) && valve1.rate > 0 && time_left >= 1 {
+        let mut open = open;
+        store(&mut open, valve1_id);
+        for child_id in valve2.children.iter() {
+            let candidate = find_max_pressure(
+                valves,
+                valve1_id,
+                *child_id,
+                time_left - 1,
+                open,
+                accumulated_rate + valve1.rate,
+                memo,
+            ) + accumulated_rate;
+            max_pressure = max(max_pressure, candidate);
+        }
+    }
+
+    // 3. option: agent1 moves, agent2 opens
+    if !contains(open, valve2_id) && valve2.rate > 0 && time_left >= 1 {
+        let mut open = open;
+        store(&mut open, valve2_id);
+        for child_id in valve1.children.iter() {
+            let candidate = find_max_pressure(
+                valves,
+                *child_id,
+                valve2_id,
+                time_left - 1,
+                open,
+                accumulated_rate + valve2.rate,
+                memo,
+            ) + accumulated_rate;
+            max_pressure = max(max_pressure, candidate);
+        }
+    }
+
+    // 4. option: both move
+    for (child1_id, child2_id) in valve1
+        .children
+        .iter()
+        .cartesian_product(valve2.children.iter())
+    {
+        let candidate = find_max_pressure(
+            valves,
+            *child1_id,
+            *child2_id,
+            time_left - 1,
+            open,
+            accumulated_rate,
+            memo,
+        ) + accumulated_rate;
+        max_pressure = max(max_pressure, candidate);
     }
 
     memo.insert(configuration, max_pressure);
@@ -134,12 +182,13 @@ fn main() {
         .collect();
 
     let start_id = valve_name_to_id("AA", &mut valve_name_to_id_memo);
-    let time_left = 30;
+    let time_left = 26;
     let open = 0u64;
     let accumulated_rate = 0;
     let mut memo: HashMap<Configuration, i32> = HashMap::new();
     let sol = find_max_pressure(
         &valves,
+        start_id,
         start_id,
         time_left,
         open,
