@@ -1,8 +1,7 @@
 use regex::{Captures, Regex};
 use std::{
-    collections::HashSet,
     env,
-    io::{self, BufRead},
+    io::{self, BufRead}, process::exit,
 };
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
@@ -74,7 +73,6 @@ fn main() {
     )
     .unwrap();
 
-    let mut beacons: HashSet<Point> = HashSet::new();
     let mut sensors: Vec<Sensor> = vec![];
     for line in lines {
         let captures = re.captures(line.as_str()).expect("Couldn't capture");
@@ -89,8 +87,6 @@ fn main() {
         };
         let radius = dist(&centre, &beacon);
         sensors.push(Sensor { centre, radius });
-
-        beacons.insert(beacon);
     }
 
     let argv: Vec<String> = env::args().collect();
@@ -109,25 +105,25 @@ fn main() {
         });
 
         let mut active_ranges = 0;
-        for range_event in range_events {
+        let range_events_num = range_events.len();
+        for (i, range_event) in range_events.iter().enumerate() {
             active_ranges += match range_event.event_type {
                 RangeEventType::Start => 1,
                 RangeEventType::End => -1,
             };
 
             // assumption, once no active ranges, it is enough to move to the next point to the right
+            // unless the next range is adjacent to the last one (e.g. [1,2] and [2,3])
             let target_x = range_event.x + 1;
             if active_ranges == 0
                 && target_x >= 0
                 && range_event.x <= limit
-                && !beacons.contains(&Point {
-                    x: target_x,
-                    y: target_y,
-                })
+                && i < range_events_num
+                && range_event.x + 1 != range_events[i + 1].x
             {
                 println!("Beacon: {}, {}", target_x, target_y);
                 println!("{}", target_x as i64 * 4000000 + target_y as i64);
-                // exit(0);
+                exit(0);
             }
         }
     }
