@@ -14,7 +14,7 @@ enum Func {
     Constant(i64),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 struct ParseFuncError;
 
 impl FromStr for Func {
@@ -34,7 +34,7 @@ impl FromStr for Func {
     }
 }
 
-fn eval(func_name: &String, funcs: &HashMap<String, Func>) -> i64 {
+fn eval(func_name: &str, funcs: &HashMap<String, Func>) -> i64 {
     let func = funcs.get(func_name).expect("Invalid func name");
     match func {
         Func::Constant(value) => *value,
@@ -69,5 +69,5 @@ fn main() {
         })
         .collect();
 
-    println!("{}", eval(&String::from("root"), &funcs));
+    println!("{}", eval("root", &funcs));
 }
