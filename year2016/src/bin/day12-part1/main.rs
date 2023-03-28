@@ -3,6 +3,20 @@ use std::{
     io::{stdin, BufRead},
 };
 
+type Registers<'a> = HashMap<&'a str, i32>;
+
+/**
+ * Tries to interpret raw_val as a number or as the value of a register.
+ */
+fn get_value(raw_val: &String, registers: &Registers) -> i32 {
+    let raw_val = raw_val.as_str();
+    let val = match raw_val.parse() {
+        Ok(val) => val,
+        Err(_) => *registers.get(&raw_val).unwrap(),
+    };
+    return val;
+}
+
 fn main() {
     let mut registers = HashMap::<&str, i32>::new();
     for reg_name in ["a", "b", "c", "d"] {
@@ -25,15 +39,7 @@ fn main() {
     while pc < total_instructions {
         let instruction = &instructions[pc as usize];
         match instruction[0].as_str() {
-            "cpy" => {
-                let raw_val = instruction[1].as_str();
-                let val = match raw_val.parse() {
-                    Ok(val) => val,
-                    Err(_) => *registers.get(&raw_val).unwrap(),
-                };
-                let reg = instruction[2].as_str();
-                registers.insert(reg, val);
-            }
+            // one-argument instructions
             "inc" => {
                 let reg = instruction[1].as_str();
                 let reg_val = registers.get(&reg).unwrap();
@@ -44,21 +50,18 @@ fn main() {
                 let reg_val = registers.get(&reg).unwrap();
                 registers.insert(reg, reg_val - 1);
             }
+            // two-argument instructions
+            "cpy" => {
+                let val = get_value(&instruction[1], &registers);
+                let reg = instruction[2].as_str();
+                registers.insert(reg, val);
+            }
             "jnz" => {
-                let reg = instruction[1].as_str();
-                let reg_val = match reg.parse::<i32>() {
-                    Ok(number) => number,
-                    Err(_) => *registers.get(reg).unwrap(),
-                };
-
-                let jump_amount: i32 = instruction[2].parse().unwrap();
-                if reg_val != 0 {
-                    pc += jump_amount;
-                } else {
-                    pc += 1;
+                let condition_value = get_value(&instruction[1], &registers);
+                if condition_value != 0 {
+                    let jump_amount: i32 = instruction[2].parse().unwrap();
+                    pc += jump_amount - 1; // -1 because regular pc++ happens
                 }
-
-                continue; // don't do regular pc increment
             }
             _ => panic!("Invalid instruction: {instruction:?}"),
         }

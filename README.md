@@ -8,3 +8,4 @@ My solutions to [Advent of Code](https://adventofcode.com/).
 - Improve solution to day 13 of year 2022 by using JSON crate
 - Improve solution to day 16 of year 2022 by merging zero-rate valves
 - Solve day 19 of year 2022
+- Solve part 2 of day 23 of year 2016 by simplifying the input code instead leaving the program to run for an hour
