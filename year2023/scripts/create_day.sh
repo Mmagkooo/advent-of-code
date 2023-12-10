@@ -15,5 +15,4 @@ mkdir -p "src/bin/day$DAY-"{part1,part2}
 code -r "src/bin/day$DAY-"{part1,part2}"/main.rs"
 
 mkdir -p "data/day$DAY"
-# not creating sample-output-part2.txt because I never used it
-code -r "data/day$DAY/"{sample.txt,sample-output-part1.txt,input.txt}
+code -r "data/day$DAY/"{sample.txt,input.txt}
