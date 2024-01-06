@@ -1,98 +1,136 @@
+"""Day 22"""
+
 import sys
 import re
 from dataclasses import dataclass
+import functools
 from typing import List
 
-LINE_REGEX = r"^(\w*) x=(.*)\.\.(.*),y=(.*)\.\.(.*)$"
+from sortedcontainers import SortedList
+
+LINE_REGEX = r"^(\w*) x=(.*)\.\.(.*),y=(.*)\.\.(.*),z=(.*)\.\.(.*)$"
+
 
 @dataclass(frozen=True)
 class Cuboid:
+    """Cuboid abstraction"""
+
     x1: int
     x2: int
     y1: int
     y2: int
-    state: str
+    z1: int
+    z2: int
+    on: bool
     time: int
 
-class LightTracker:
-    def __init__(self):
-        self.offs = set()
-        self.ons = set()
 
-    def track_event(self, is_start: bool, cuboid: Cuboid):
-        if cuboid.state == "on":
-            if is_start:
-                self.ons.add(cuboid.time)
-            else:
-                self.ons.remove(cuboid.time)
-        elif cuboid.state == "off":
-            if is_start:
-                self.offs.add(cuboid.time)
-            else:
-                self.offs.remove(cuboid.time)
-        else:
-            raise ValueError
+def parse_state(state_str: str) -> bool:
+    """Parse onness"""
+    if state_str == "on":
+        return True
+    if state_str == "off":
+        return False
+    raise ValueError(f"Invalid state: {state_str}")
 
-    def currently_on(self):
-        last_on = -1 if not self.ons else max(self.ons)
-        last_off = -1 if not self.offs else max(self.offs)
-        if last_on == last_off:
-            if last_on == -1:
-                return False
-            raise ValueError
-        return last_on > last_off
 
-cuboids: List[Cuboid] = []
-for time, line in enumerate(sys.stdin):
-    if line.startswith("#"):
-        continue
-    state, *numeric_input = re.search(LINE_REGEX, line.strip()).groups()
-    x1, x2, y1, y2 = map(int, numeric_input)
-    cuboid = Cuboid(x1, x2, y1, y2, state, time)
-    cuboids.append(cuboid)
+def read_cuboids() -> List[Cuboid]:
+    """Read from stdin"""
 
-def create_events(cuboids):
-    events = []
-    for cuboid in cuboids:
-        events.append((True, cuboid))
-        events.append((False, cuboid))
-    return events
+    cuboids: List[Cuboid] = []
+    for time, line in enumerate(l for l in sys.stdin if not l.startswith("#")):
+        state, *numeric_input = re.search(LINE_REGEX, line.strip()).groups()
+        cuboid = Cuboid(*map(int, numeric_input), on=parse_state(state), time=time)
+        cuboids.append(cuboid)
 
-def get_cuboids(events, predicate):
-    cuboids = set()
-    for _, cuboid in events:
-        if predicate(cuboid):
-            cuboids.add(cuboid)
     return cuboids
 
-x_events = create_events(cuboids)
-print("DEBUG x_events", x_events)
-area = 0
-last_x = None
-for is_start, x_cuboid in sorted(x_events, key=lambda e: (e[1].x1 if e[0] else e[1].x2, e[0])): # sort using tuple to give precedence to closing events
-    print("DEBUG is_start, x_cuboid", is_start, x_cuboid)
-    x = x_cuboid.x1 if is_start else x_cuboid.x2
-    y_events = create_events(get_cuboids(x_events, lambda c: c.x1 <= x <= c.x2))
-    # TODO create counter for how many new cuboids at e.g. x==2 (solves case of multiple starting/ending on same line)
-    last_y = None
-    y_length = 0
-    # TODO does x axis have to take care of whether it currently is in light or not?
-    light_tracker = LightTracker()
-    for is_start, y_cuboid in sorted(y_events, key=lambda e: (e[1].y1 if e[0] else e[1].y2, e[0])):
-        y = y_cuboid.y1 if is_start else y_cuboid.y2
-        if last_y is not None and light_tracker.currently_on():
-            y_length += y - last_y + 1
-            print("DEBUG y_length", y_length)
-        else:
-            y_length = 0
 
-        light_tracker.track_event(is_start, y_cuboid)
-        last_y = y
+@dataclass(frozen=True)
+@functools.total_ordering
+class CuboidEvent:
+    """Cuboid start or end"""
 
-    if last_x is not None:
-        x_diff = x - last_x + 1
-        print("DEBUG x_diff", x_diff)
-        area += y_length * x_diff
-    last_x = x
+    dist: int
+    start: bool
+    """Start or end"""
+    on: bool
+    time: int
 
-print(area)
+    def _to_comparable(self):
+        return (self.dist, self.start, self.on, self.time)
+
+    def __lt__(self, other: "CuboidEvent") -> bool:
+        # return (self.dist, self.start) < (other.dist, other.start)
+        if self.dist == other.dist:
+            if self.start == other.start:
+                return False
+            return self.start is False  # ending event has precedence
+        return self.dist < other.dist
+
+
+def to_axis_events(
+    cuboids: List[Cuboid], start_prop: str, end_prop: str
+) -> List[CuboidEvent]:
+    """Convert list of cuboids to list of cuboid events"""
+    events = []
+    for c in cuboids:
+        events.append(
+            CuboidEvent(dist=getattr(c, start_prop), start=True, on=c.on, time=c.time)
+        )
+        events.append(
+            CuboidEvent(
+                dist=getattr(c, end_prop) + 1, start=False, on=c.on, time=c.time
+            )
+        )
+
+    return events
+
+
+def main():
+    """Main function"""
+
+    cuboids = read_cuboids()
+
+    on_count = 0
+
+    x_events = sorted(to_axis_events(cuboids, start_prop="x1", end_prop="x2"))
+    last_y_count = 0
+    for x_i, x_event in enumerate(x_events):
+        y_suitable_cuboids = [c for c in cuboids if c.x1 <= x_event.dist <= c.x2]
+        y_count = 0
+        y_events = sorted(
+            to_axis_events(y_suitable_cuboids, start_prop="y1", end_prop="y2")
+        )
+        last_z_count = 0
+        for y_i, y_event in enumerate(y_events):
+            active_timestamps = SortedList()
+            z_count = 0
+            z_suitable_cuboids = [
+                c for c in y_suitable_cuboids if c.y1 <= y_event.dist <= c.y2
+            ]
+            z_events = sorted(
+                to_axis_events(z_suitable_cuboids, start_prop="z1", end_prop="z2")
+            )
+            for z_i, z_event in enumerate(z_events):
+                if active_timestamps:
+                    active_cuboid = cuboids[active_timestamps[-1]]
+                    if active_cuboid.on:
+                        z_count += z_event.dist - z_events[z_i - 1].dist
+
+                if z_event.start:
+                    active_timestamps.add(z_event.time)
+                else:
+                    active_timestamps.remove(z_event.time)
+
+            y_count += (y_event.dist - y_events[y_i - 1].dist) * last_z_count
+            last_z_count = z_count
+
+        on_count += (x_event.dist - x_events[x_i - 1].dist) * last_y_count
+        last_y_count = y_count
+
+    print(on_count)
+
+
+if __name__ == "__main__":
+    main()
