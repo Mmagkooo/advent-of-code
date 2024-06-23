@@ -11,4 +11,4 @@ awk '
         }
     }
     END{ print sol }
-' <input.txt
+' input.txt
