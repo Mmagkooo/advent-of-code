@@ -2,30 +2,33 @@
 
 BEGIN{
     size=256;
-    for (i = 0; i < size; ++i) list[i] = i;
-    position=0;
 
-    # there is no native ord in awk, this is a minimal subset of it needed for this task
-    ord[","] = 44;
-    for (i = 0; i <= 9; ++i) {
-        ord[i] = 48 + i;
+    # there is no native ord in awk, this is a hopefully sufficient subset
+    split(" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", ascii_chars, "");
+    for (i = 1; i <= length(ascii_chars); ++i) {
+        # first char is space, whose ord is 32
+        ord[ascii_chars[i]] = i + 31;
     }
+
+    split("17, 31, 73, 47, 23", extra_lengths, ", ");
 }
 
 {
+    for (i = 0; i < size; ++i) list[i] = i;
+
+    delete lengths;
     split($0, raw_lengths, "");
     for (i = 1; i <= length(raw_lengths); ++i) {
         lengths[i] = ord[raw_lengths[i]];
     }
 
-    split("17, 31, 73, 47, 23", extra_lengths, ", ");
     for (i = 1; i <= length(extra_lengths); ++i) {
         lengths[length(lengths) + 1] = extra_lengths[i];
     }
-}
 
-END{
+    position = 0;
     rounds = 64;
+    skip_size = 0;
     while (rounds--) {
         for (length_i = 1; length_i <= length(lengths); ++length_i) {
             current_length = lengths[length_i];
