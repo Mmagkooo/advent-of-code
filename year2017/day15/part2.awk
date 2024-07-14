@@ -8,10 +8,6 @@ function dec_to_bin_suffix(n, bin, digit) {
         n = int(n / 2);
     }
 
-    while (length(bin) < SUFFIX_LENGTH) {
-        bin = "0" bin;
-    }
-
     return bin;
 }
 
@@ -35,13 +31,10 @@ BEGIN{
     SUFFIX_LENGTH = 16;
 }
 
-$2=="A"{initial_a = $NF}
-$2=="B"{initial_b = $NF}
+$2=="A"{current_a = $NF}
+$2=="B"{current_b = $NF}
 
 END{
-    current_a = initial_a;
-    current_b = initial_b;
-
     matches = 0;
     total_pairs = 5e6;
     while (total_pairs--) {
