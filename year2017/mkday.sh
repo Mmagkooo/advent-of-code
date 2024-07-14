@@ -11,13 +11,13 @@ day="$1"
 directory="day$day"
 
 if [ -d "$directory" ]; then
-    echo "Error: $directory" already exists
+    echo "Error: $directory" already exists 1>&2
     exit 2
 fi
 
 mkdir "$directory"
 
-for i in {1,2}; do
+for i in 1 2; do
     filename="$directory/part$i.awk"
     echo "#!/usr/bin/awk -f" >"$filename"
     chmod +x "$filename"
