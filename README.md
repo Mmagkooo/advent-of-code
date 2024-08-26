@@ -1,11 +1,15 @@
 My solutions to [Advent of Code](https://adventofcode.com/).
 
-## TODO
+| Year | Language(s) used | Details                                                                                             |
+| ---- | ---------------- | --------------------------------------------------------------------------------------------------- |
+| 2015 | None             | No days solved, yet                                                                                 |
+| 2016 | Rust             |                                                                                                     |
+| 2017 | Awk              | Original solutions in Python located on old computer, rewritten in 2024 using Awk and a bit of Bash |
+| 2018 | Python           |                                                                                                     |
+| 2019 | Python           | Not provided in this repository, requires migration from old machine                                |
+| 2020 | Python           | Not provided in this repository, requires migration from old machine                                |
+| 2021 | Python           |                                                                                                     |
+| 2022 | Rust             |                                                                                                     |
+| 2023 | Rust             | Inefficient solution to part 2 of day 5                                                             |
 
-- Find where I saved the solutions to years 2017, 2019, 2020
-- Solve part 2 of day 23 of year 2018
-- Improve solution to day 13 of year 2022 by using JSON crate
-- Improve solution to day 16 of year 2022 by merging zero-rate valves
-- Solve part 2 of day 23 of year 2016 by simplifying the input code instead of leaving the program to run for 5.5 minutes
-- Solve part 2 of day 5 of year 2023 by splitting the biggest range (just one range would effectively halve the execution time)
-  - An approach that is not suboptimal involves operating on ranges, but I left that to smarter people
+More information in the readme file of each year's directory.
